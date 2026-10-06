@@ -1,0 +1,22 @@
+{
+	"schemaVersion": 1,
+	"id": "chaosheart",
+	"version": "${version}",
+	"name": "Chaos Heart",
+	"description": "Muestra la vida de cada jugador en tiempo real (22❤) encima del nombre y en el TAB. Incluye corazones de absorción y corazones extra de otros mods.",
+	"authors": ["Luis Enrique Gil Mayser"],
+	"license": "MIT",
+	"icon": "assets/chaosheart/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": ["com.chaos.heart.ChaosHeart"],
+		"client": ["com.chaos.heart.client.ChaosHeartClient"]
+	},
+	"mixins": ["chaosheart.mixins.json"],
+	"depends": {
+		"fabricloader": ">=0.16.0",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

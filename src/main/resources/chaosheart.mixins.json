@@ -1,0 +1,12 @@
+{
+	"required": true,
+	"package": "com.chaos.heart.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"client.PlayerRendererMixin",
+		"client.PlayerTabOverlayMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
