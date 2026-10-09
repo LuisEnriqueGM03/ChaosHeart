@@ -1,4 +1,4 @@
-package com.chaos.heart.client;
+package com.chaos.heart.neoforge;
 
 import java.util.List;
 import java.util.UUID;
@@ -8,8 +8,6 @@ import com.chaos.heart.ChaosHeart;
 import com.chaos.heart.HeartText;
 import com.mojang.authlib.GameProfile;
 
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.core.BlockPos;
@@ -29,14 +27,17 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.ScoreAccess;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.util.FakePlayer;
+import net.neoforged.neoforge.common.util.FakePlayerFactory;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 
 /**
- * Autoprueba visual, solo en desarrollo (./gradlew runSelftest).
+ * Autoprueba visual en NeoForge (./gradlew :neoforge:runSelftest).
  * Crea un segundo jugador ("ChaosFriend") delante de la cámara y fotografía cada caso:
  * nametag normal, dorado (>20), con corazones extra (40) y latiendo con poca vida, y el TAB.
- * Las capturas quedan en run/screenshots/selftest_*.png; las series "*_fNN" son fotogramas de un latido.
  */
-public final class SelfTest {
+public final class SelfTestNeoForge {
 
 	private static final int START = 60;
 	private static final int SCENE = 40;
@@ -48,14 +49,14 @@ public final class SelfTest {
 	/** Posición fija de la cámara, la elige el servidor en setup(). */
 	private static volatile Vec3 camera;
 
-	private SelfTest() {}
+	private SelfTestNeoForge() {}
 
 	public static boolean enabled() {
 		return System.getProperty("chaosheart.selftest") != null;
 	}
 
 	public static void register() {
-		ClientTickEvents.END_CLIENT_TICK.register(SelfTest::tick);
+		NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post.class, event -> tick(Minecraft.getInstance()));
 	}
 
 	private static void tick(Minecraft mc) {
@@ -66,17 +67,15 @@ public final class SelfTest {
 		mc.getToasts().clear();
 		ticks++;
 		if (ticks == START) {
-			onServer(mc, SelfTest::setup);
+			onServer(mc, SelfTestNeoForge::setup);
 		}
 		if (camera != null) {
-			// Se fija cada tick: el ratón real movería la cámara entre medias. Mira al norte, hacia el amigo.
 			mc.player.setPos(camera);
 			mc.player.setDeltaMovement(Vec3.ZERO);
 			mc.player.setYRot(180.0F);
 			mc.player.setXRot(-8.0F);
 		}
 
-		// Margen para que se vuelvan a dibujar los chunks tras despejar la escena.
 		int t = ticks - START - 60;
 
 		// 1. Nametag con vida completa.
@@ -126,7 +125,6 @@ public final class SelfTest {
 		}
 	}
 
-	/** Una captura por tick durante un latido completo. */
 	private static void frames(Minecraft mc, int t, int start, String name) {
 		int i = t - start;
 		if (i >= 0 && i < FRAMES) {
@@ -148,11 +146,10 @@ public final class SelfTest {
 		me.setGameMode(GameType.SURVIVAL);
 		me.setHealth(me.getMaxHealth());
 		me.getFoodData().setFoodLevel(20);
-		// La cámara, 4 bloques al sur del amigo, mirando al norte (yaw 180).
 		me.teleportTo(level, ground.getX() + 0.5, ground.getY(), ground.getZ() + 4.5, 180.0F, -8.0F);
 		camera = me.position();
 
-		friend = FakePlayer.get(level, FRIEND);
+		friend = FakePlayerFactory.get(level, FRIEND);
 		friend.moveTo(ground.getX() + 0.5, ground.getY(), ground.getZ() + 0.5, 0.0F, 0.0F);
 		friend.setYHeadRot(0.0F);
 		friend.setHealth(20.0F);
@@ -161,7 +158,6 @@ public final class SelfTest {
 		updateFriendScore(server);
 	}
 
-	/** Explanada de hierba sin árboles ni agua alrededor de la escena. */
 	private static void clearScene(ServerLevel level, BlockPos ground) {
 		for (BlockPos pos : BlockPos.betweenClosed(ground.offset(-12, -3, -10), ground.offset(12, 20, 12))) {
 			int dy = pos.getY() - ground.getY();
@@ -171,7 +167,6 @@ public final class SelfTest {
 		}
 	}
 
-	/** El amigo no está en la lista de jugadores, así que el tick del mod no le pone score: se hace aquí. */
 	private static void updateFriendScore(MinecraftServer server) {
 		Objective objective = server.getScoreboard().getObjective(ChaosHeart.OBJECTIVE);
 		if (objective == null || friend == null) {
