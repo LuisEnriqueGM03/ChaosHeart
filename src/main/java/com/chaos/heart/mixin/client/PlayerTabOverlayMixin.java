@@ -44,7 +44,7 @@ public abstract class PlayerTabOverlayMixin {
 		Component number = text.plainCopy().setStyle(text.getStyle());
 		Component heart = text.getSiblings().get(0);
 		int heartX = original.call(graphics, font, number, x, y, color);
-		float scale = HeartText.beatScale(minecraft.gui.getGuiTicks() + minecraft.getTimer().getGameTimeDeltaPartialTick(false));
+		float scale = HeartText.beatScale(minecraft.gui.getGuiTicks() + minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false));
 		float cx = heartX + font.width(heart) / 2.0F;
 		float cy = y + 4.0F;
 		graphics.pose().pushPose();
