@@ -8,7 +8,7 @@ version = "${version}"
 displayName = "${mod_name}"
 logoFile = "assets/chaosheart/icon.png"
 authors = "${mod_author}"
-description = '''${description}'''
+description = '''Muestra la vida de cada jugador en tiempo real encima del nombre y en el TAB. Incluye corazones de absorcion y corazones extra de otros mods.'''
 
 [[mixins]]
 config = "${mod_id}.mixins.json"

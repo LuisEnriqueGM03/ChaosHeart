@@ -52,6 +52,7 @@ neoForge {
 }
 
 processResources {
+    filteringCharset = 'UTF-8'
     var expandProps = [
         'version': version,
         'mod_id': mod_id,
