@@ -1,6 +1,7 @@
 package com.chaos.heart.client;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -63,7 +64,7 @@ public final class SelfTest {
 			return;
 		}
 		mc.options.pauseOnLostFocus = false;
-		mc.getToasts().clear();
+		mc.getToastManager().clear();
 		ticks++;
 		if (ticks == START) {
 			onServer(mc, SelfTest::setup);
@@ -149,7 +150,7 @@ public final class SelfTest {
 		me.setHealth(me.getMaxHealth());
 		me.getFoodData().setFoodLevel(20);
 		// La cámara, 4 bloques al sur del amigo, mirando al norte (yaw 180).
-		me.teleportTo(level, ground.getX() + 0.5, ground.getY(), ground.getZ() + 4.5, 180.0F, -8.0F);
+		me.teleportTo(level, ground.getX() + 0.5, ground.getY(), ground.getZ() + 4.5, Set.of(), 180.0F, -8.0F, false);
 		camera = me.position();
 
 		friend = FakePlayer.get(level, FRIEND);
