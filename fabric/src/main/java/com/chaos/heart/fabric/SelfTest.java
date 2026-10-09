@@ -1,4 +1,4 @@
-package com.chaos.heart.client;
+package com.chaos.heart.fabric;
 
 import java.util.List;
 import java.util.UUID;

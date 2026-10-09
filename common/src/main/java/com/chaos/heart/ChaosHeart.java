@@ -9,10 +9,6 @@ import org.slf4j.LoggerFactory;
 
 import com.chaos.heart.config.HeartConfig;
 
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.numbers.FixedFormat;
 import net.minecraft.server.MinecraftServer;
@@ -24,10 +20,11 @@ import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.world.scores.criteria.ObjectiveCriteria;
 
 /**
+ * Lógica común de Chaos Heart:
  * Mantiene el objetivo de scoreboard "chaosheart" con la vida de cada jugador como texto fijo "22❤".
  * El scoreboard se sincroniza a todos los clientes, así el TAB funciona incluso en clientes vanilla.
  */
-public class ChaosHeart implements ModInitializer {
+public final class ChaosHeart {
 
 	public static final String MOD_ID = "chaosheart";
 	public static final String OBJECTIVE = "chaosheart";
@@ -36,24 +33,9 @@ public class ChaosHeart implements ModInitializer {
 	/** Último valor enviado por jugador. */
 	private static final Map<UUID, Integer> LAST = new HashMap<>();
 
-	@Override
-	public void onInitialize() {
-		HeartConfig.load();
+	private ChaosHeart() {}
 
-		ServerLifecycleEvents.SERVER_STARTED.register(ChaosHeart::setupObjective);
-		ServerLifecycleEvents.SERVER_STOPPED.register(server -> LAST.clear());
-		ServerTickEvents.END_SERVER_TICK.register(ChaosHeart::tick);
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-			ServerPlayer player = handler.getPlayer();
-			LAST.remove(player.getUUID());
-			Objective objective = server.getScoreboard().getObjective(OBJECTIVE);
-			if (objective != null) {
-				server.getScoreboard().resetSinglePlayerScore(player, objective);
-			}
-		});
-	}
-
-	private static void setupObjective(MinecraftServer server) {
+	public static void setupObjective(MinecraftServer server) {
 		Scoreboard scoreboard = server.getScoreboard();
 		Objective objective = scoreboard.getObjective(OBJECTIVE);
 		if (objective == null) {
@@ -73,7 +55,7 @@ public class ChaosHeart implements ModInitializer {
 		}
 	}
 
-	private static void tick(MinecraftServer server) {
+	public static void tick(MinecraftServer server) {
 		Scoreboard scoreboard = server.getScoreboard();
 		Objective objective = scoreboard.getObjective(OBJECTIVE);
 		if (objective == null) {
@@ -89,5 +71,19 @@ public class ChaosHeart implements ModInitializer {
 			score.numberFormatOverride(new FixedFormat(HeartText.of(value)));
 			score.set(value);
 		}
+	}
+
+	public static void handleDisconnect(ServerPlayer player, MinecraftServer server) {
+		LAST.remove(player.getUUID());
+		if (server != null) {
+			Objective objective = server.getScoreboard().getObjective(OBJECTIVE);
+			if (objective != null) {
+				server.getScoreboard().resetSinglePlayerScore(player, objective);
+			}
+		}
+	}
+
+	public static void clear() {
+		LAST.clear();
 	}
 }
