@@ -2,7 +2,7 @@
 
 # See everyone's health, live.
 
-**Chaos Heart** shows every player's health in real time **above their nametag** and in the **TAB list** as **20❤**. Built for Fabric 1.21.1.
+**Chaos Heart** shows every player's health in real time **above their nametag** and in the **TAB list** as **20❤**. Built for Minecraft 1.21.1 (Fabric & NeoForge).
 
 ![Health above the nametag](screenshots/01_vida_completa.png)
 
@@ -23,7 +23,10 @@
 
 ## 📦 Requirements
 
-Minecraft 1.21.1 · Fabric Loader 0.16+ · Fabric API. Install on **server and client** for the full experience.
+- **Minecraft:** 1.21.1
+- **Fabric:** Fabric Loader 0.16+ · Fabric API
+- **NeoForge:** NeoForge 21.1+
+- Install on **server and client** for the full experience.
 
 ## 🛠️ Build
 
@@ -31,7 +34,11 @@ Minecraft 1.21.1 · Fabric Loader 0.16+ · Fabric API. Install on **server and c
 ./gradlew build
 ```
 
-The jar ends up in `build/libs/`. `./gradlew runSelftest` regenerates the screenshots.
+The compiled jars are generated in:
+- `fabric/build/libs/` (Fabric)
+- `neoforge/build/libs/` (NeoForge)
+
+`./gradlew :fabric:runSelftest` regenerates the screenshots.
 
 ## License
 
