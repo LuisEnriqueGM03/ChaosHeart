@@ -12,6 +12,17 @@ neoForge {
         server {
             server()
         }
+        selftest {
+            client()
+            gameDirectory = rootProject.file('run')
+            programArgument '--quickPlaySingleplayer'
+            programArgument 'selftest'
+            programArgument '--width'
+            programArgument '1280'
+            programArgument '--height'
+            programArgument '720'
+            systemProperty 'chaosheart.selftest', 'true'
+        }
     }
     mods {
         "${mod_id}" {
