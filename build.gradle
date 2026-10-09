@@ -1,49 +1,70 @@
 plugins {
-	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
-	id 'maven-publish'
+    id 'net.neoforged.moddev' version "${moddev_version}"
+    id 'maven-publish'
 }
 
-loom {
-	mods {
-		"chaosheart" {
-			sourceSet sourceSets.main
-		}
-	}
+version = project.version
+group = project.group
 
-	runs {
-		// Autoprueba visual: ./gradlew runSelftest (necesita run/saves/selftest).
-		selftest {
-			client()
-			name "Self Test"
-			programArgs "--quickPlaySingleplayer", "selftest", "--width", "1280", "--height", "720"
-			vmArg "-Dchaosheart.selftest=true"
-		}
-	}
-}
-
-dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings loom.officialMojangMappings()
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-}
-
-processResources {
-	def version = project.version
-	inputs.property "version", version
-
-	filesMatching("fabric.mod.json") {
-		expand "version": version
-	}
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
+base {
+    archivesName = "${mod_id}-neoforge-${minecraft_version}"
 }
 
 java {
-	withSourcesJar()
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
 
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 21
+    it.options.encoding = 'UTF-8'
+}
+
+neoForge {
+    version = project.neoforge_version
+
+    runs {
+        client {
+            client()
+        }
+        server {
+            server()
+        }
+        selftest {
+            client()
+            gameDirectory = file('run')
+            programArgument '--quickPlaySingleplayer'
+            programArgument 'selftest'
+            programArgument '--width'
+            programArgument '1280'
+            programArgument '--height'
+            programArgument '720'
+            systemProperty 'chaosheart.selftest', 'true'
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+processResources {
+    var expandProps = [
+        'version': version,
+        'mod_id': mod_id,
+        'mod_name': mod_name,
+        'mod_author': mod_author,
+        'license': license,
+        'description': mod_description,
+        'neoforge_version': neoforge_version,
+        'neoforge_loader_version_range': neoforge_loader_version_range,
+        'minecraft_version_range': minecraft_version_range
+    ]
+    filesMatching(['META-INF/neoforge.mods.toml', '*.mixins.json']) {
+        expand expandProps
+    }
+    inputs.properties(expandProps)
 }

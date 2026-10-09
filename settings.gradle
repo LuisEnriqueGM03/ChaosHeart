@@ -1,13 +1,19 @@
 pluginManagement {
-	repositories {
-		maven {
-			name = 'Fabric'
-			url = 'https://maven.fabricmc.net/'
-		}
-		mavenCentral()
-		gradlePluginPortal()
-	}
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = 'NeoForge'
+                    url = uri('https://maven.neoforged.net/releases')
+                }
+            }
+            filter {
+                includeGroupAndSubgroups('net.neoforged')
+            }
+        }
+    }
 }
 
-// Should match your modid
-rootProject.name = 'chaosheart'
+rootProject.name = 'ChaosHeart'

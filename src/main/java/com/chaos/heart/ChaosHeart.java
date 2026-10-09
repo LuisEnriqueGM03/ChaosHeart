@@ -7,12 +7,9 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.chaos.heart.client.SelfTest;
 import com.chaos.heart.config.HeartConfig;
 
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.numbers.FixedFormat;
 import net.minecraft.server.MinecraftServer;
@@ -22,38 +19,45 @@ import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.ScoreAccess;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.world.scores.criteria.ObjectiveCriteria;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
-/**
- * Mantiene el objetivo de scoreboard "chaosheart" con la vida de cada jugador como texto fijo "22❤".
- * El scoreboard se sincroniza a todos los clientes, así el TAB funciona incluso en clientes vanilla.
- */
-public class ChaosHeart implements ModInitializer {
+@Mod(ChaosHeart.MOD_ID)
+public class ChaosHeart {
 
 	public static final String MOD_ID = "chaosheart";
 	public static final String OBJECTIVE = "chaosheart";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-	/** Último valor enviado por jugador. */
 	private static final Map<UUID, Integer> LAST = new HashMap<>();
 
-	@Override
-	public void onInitialize() {
-		HeartConfig.load();
+	public ChaosHeart(IEventBus modEventBus) {
+		HeartConfig.load(FMLPaths.CONFIGDIR.get());
 
-		ServerLifecycleEvents.SERVER_STARTED.register(ChaosHeart::setupObjective);
-		ServerLifecycleEvents.SERVER_STOPPED.register(server -> LAST.clear());
-		ServerTickEvents.END_SERVER_TICK.register(ChaosHeart::tick);
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-			ServerPlayer player = handler.getPlayer();
-			LAST.remove(player.getUUID());
-			Objective objective = server.getScoreboard().getObjective(OBJECTIVE);
-			if (objective != null) {
-				server.getScoreboard().resetSinglePlayerScore(player, objective);
+		IEventBus forgeBus = NeoForge.EVENT_BUS;
+		forgeBus.addListener(ServerStartedEvent.class, event -> setupObjective(event.getServer()));
+		forgeBus.addListener(ServerStoppedEvent.class, event -> LAST.clear());
+		forgeBus.addListener(ServerTickEvent.Post.class, event -> tick(event.getServer()));
+		forgeBus.addListener(PlayerEvent.PlayerLoggedOutEvent.class, event -> {
+			if (event.getEntity() instanceof ServerPlayer player) {
+				handleDisconnect(player, player.getServer());
 			}
 		});
+
+		if (FMLEnvironment.dist == Dist.CLIENT && SelfTest.enabled()) {
+			SelfTest.register();
+		}
 	}
 
-	private static void setupObjective(MinecraftServer server) {
+	public static void setupObjective(MinecraftServer server) {
 		Scoreboard scoreboard = server.getScoreboard();
 		Objective objective = scoreboard.getObjective(OBJECTIVE);
 		if (objective == null) {
@@ -73,7 +77,7 @@ public class ChaosHeart implements ModInitializer {
 		}
 	}
 
-	private static void tick(MinecraftServer server) {
+	public static void tick(MinecraftServer server) {
 		Scoreboard scoreboard = server.getScoreboard();
 		Objective objective = scoreboard.getObjective(OBJECTIVE);
 		if (objective == null) {
@@ -88,6 +92,16 @@ public class ChaosHeart implements ModInitializer {
 			ScoreAccess score = scoreboard.getOrCreatePlayerScore(player, objective);
 			score.numberFormatOverride(new FixedFormat(HeartText.of(value)));
 			score.set(value);
+		}
+	}
+
+	public static void handleDisconnect(ServerPlayer player, MinecraftServer server) {
+		LAST.remove(player.getUUID());
+		if (server != null) {
+			Objective objective = server.getScoreboard().getObjective(OBJECTIVE);
+			if (objective != null) {
+				server.getScoreboard().resetSinglePlayerScore(player, objective);
+			}
 		}
 	}
 }
