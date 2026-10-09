@@ -1,49 +1,100 @@
 plugins {
-	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
-	id 'maven-publish'
+    id 'net.minecraftforge.gradle' version "${forge_gradle_version}"
+    id 'org.spongepowered.mixin' version '0.7-SNAPSHOT'
+    id 'maven-publish'
 }
 
-loom {
-	mods {
-		"chaosheart" {
-			sourceSet sourceSets.main
-		}
-	}
+version = project.version
+group = project.group
 
-	runs {
-		// Autoprueba visual: ./gradlew runSelftest (necesita run/saves/selftest).
-		selftest {
-			client()
-			name "Self Test"
-			programArgs "--quickPlaySingleplayer", "selftest", "--width", "1280", "--height", "720"
-			vmArg "-Dchaosheart.selftest=true"
-		}
-	}
-}
-
-dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings loom.officialMojangMappings()
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-}
-
-processResources {
-	def version = project.version
-	inputs.property "version", version
-
-	filesMatching("fabric.mod.json") {
-		expand "version": version
-	}
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
+base {
+    archivesName = "${mod_id}-forge-${minecraft_version}"
 }
 
 java {
-	withSourcesJar()
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
 
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 21
+    it.options.encoding = 'UTF-8'
+}
+
+mixin {
+    config("${mod_id}.mixins.json")
+}
+
+jar {
+    manifest {
+        attributes([
+            'Specification-Title': mod_name,
+            'Specification-Vendor': mod_author,
+            'Specification-Version': project.jar.archiveVersion,
+            'Implementation-Title': project.name,
+            'Implementation-Version': project.jar.archiveVersion,
+            'Implementation-Vendor': mod_author,
+            'Built-On-Minecraft': minecraft_version,
+            'MixinConfigs': "${mod_id}.mixins.json"
+        ])
+    }
+}
+
+minecraft {
+    mappings channel: 'official', version: minecraft_version
+    copyIdeResources = true
+    reobf = false
+
+    runs {
+        client {
+            workingDirectory file('runs/client')
+            ideaModule "${rootProject.name}.main"
+            taskName 'Client'
+            mods {
+                modClientRun {
+                    source sourceSets.main
+                }
+            }
+        }
+        server {
+            workingDirectory file('runs/server')
+            ideaModule "${rootProject.name}.main"
+            taskName 'Server'
+            mods {
+                modServerRun {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
+
+    compileOnly "io.github.llamalad7:mixinextras-common:0.4.1"
+    annotationProcessor "io.github.llamalad7:mixinextras-common:0.4.1"
+    implementation(jarJar("io.github.llamalad7:mixinextras-forge:0.4.1")) {
+        jarJar.ranged(it, "[0.4.1,)")
+    }
+}
+
+processResources {
+    var expandProps = [
+        'version': version,
+        'mod_id': mod_id,
+        'mod_name': mod_name,
+        'mod_author': mod_author,
+        'license': license,
+        'description': mod_description,
+        'forge_version': forge_version,
+        'forge_loader_version_range': forge_loader_version_range,
+        'minecraft_version_range': minecraft_version_range
+    ]
+    filesMatching(['META-INF/mods.toml', '*.mixins.json']) {
+        expand expandProps
+    }
+    inputs.properties(expandProps)
 }
