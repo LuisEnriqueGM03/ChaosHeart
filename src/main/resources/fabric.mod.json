@@ -4,7 +4,7 @@
 	"version": "${version}",
 	"name": "Chaos Heart",
 	"description": "Muestra la vida de cada jugador en tiempo real (22❤) encima del nombre y en el TAB. Incluye corazones de absorción y corazones extra de otros mods.",
-	"authors": ["Luis Enrique Gil Mayser"],
+	"authors": ["Goddark83"],
 	"license": "MIT",
 	"icon": "assets/chaosheart/icon.png",
 	"environment": "*",
