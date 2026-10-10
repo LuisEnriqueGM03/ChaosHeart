@@ -5,10 +5,10 @@ import org.spongepowered.asm.mixin.Unique;
 
 import com.chaos.heart.client.ChaosHeartRenderState;
 
-import net.minecraft.client.renderer.entity.state.PlayerRenderState;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.network.chat.Component;
 
-@Mixin(PlayerRenderState.class)
+@Mixin(AvatarRenderState.class)
 public class PlayerRenderStateMixin implements ChaosHeartRenderState {
 	@Unique
 	private Component chaosheart$hearts;

@@ -23,7 +23,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.loading.FMLPaths;
 
@@ -38,33 +38,31 @@ public class ChaosHeart {
 
 	public ChaosHeart() {
 		HeartConfig.load(FMLPaths.CONFIGDIR.get());
-
-		IEventBus forgeBus = MinecraftForge.EVENT_BUS;
-		forgeBus.addListener(this::onServerStarted);
-		forgeBus.addListener(this::onServerStopped);
-		forgeBus.addListener(this::onServerTick);
-		forgeBus.addListener(this::onPlayerLoggedOut);
+		MinecraftForge.EVENT_BUS.register(this);
 	}
 
-	private void onServerStarted(ServerStartedEvent event) {
+	@SubscribeEvent
+	public void onServerStarted(ServerStartedEvent event) {
 		setupObjective(event.getServer());
 	}
 
-	private void onServerStopped(ServerStoppedEvent event) {
+	@SubscribeEvent
+	public void onServerStopped(ServerStoppedEvent event) {
 		LAST.clear();
 	}
 
-	private void onServerTick(TickEvent.ServerTickEvent event) {
-		if (event.phase == TickEvent.Phase.END) {
-			tick(event.getServer());
+	@SubscribeEvent
+	public void onServerTick(TickEvent.ServerTickEvent.Post event) {
+		tick(event.server());
+	}
+
+	@SubscribeEvent
+	public void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+		if (event.getEntity() instanceof ServerPlayer player) {
+			handleDisconnect(player, player.level().getServer());
 		}
 	}
 
-	private void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
-		if (event.getEntity() instanceof ServerPlayer player) {
-			handleDisconnect(player, player.getServer());
-		}
-	}
 
 	public static void setupObjective(MinecraftServer server) {
 		Scoreboard scoreboard = server.getScoreboard();

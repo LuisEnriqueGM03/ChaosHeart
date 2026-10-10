@@ -1,6 +1,7 @@
 package com.chaos.heart.mixin.client;
 
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -8,95 +9,96 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.chaos.heart.ChaosHeart;
 import com.chaos.heart.HeartText;
 import com.chaos.heart.client.ChaosHeartRenderState;
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.vertex.PoseStack;
 
-import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.entity.player.PlayerRenderer;
-import net.minecraft.client.renderer.entity.state.EntityRenderState;
-import net.minecraft.client.renderer.entity.state.PlayerRenderState;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.entity.player.AvatarRenderer;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.numbers.StyledFormat;
+import net.minecraft.world.entity.Avatar;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.DisplaySlot;
 import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.ReadOnlyScoreInfo;
 import net.minecraft.world.scores.Scoreboard;
 
-/** Dibuja "22❤" encima del nombre del jugador en lugar de debajo (como hace el scoreboard vanilla). */
-@Mixin(PlayerRenderer.class)
+/** Dibuja "22❤" encima del nombre del avatar en lugar de debajo (como hace el scoreboard vanilla). */
+@Mixin(AvatarRenderer.class)
 public abstract class PlayerRendererMixin {
 
-	/** Oculta el render vanilla de nuestro objetivo bajo el nombre; otros objetivos siguen igual. */
-	@WrapOperation(method = "extractRenderState(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/client/renderer/entity/state/PlayerRenderState;F)V",
-			at = @At(value = "INVOKE", target = "Lnet/minecraft/world/scores/Scoreboard;getDisplayObjective(Lnet/minecraft/world/scores/DisplaySlot;)Lnet/minecraft/world/scores/Objective;"))
-	private Objective chaosheart$hideVanillaBelowName(Scoreboard scoreboard, DisplaySlot slot, Operation<Objective> original) {
-		Objective objective = original.call(scoreboard, slot);
-		return objective != null && ChaosHeart.OBJECTIVE.equals(objective.getName()) ? null : objective;
-	}
-
 	/** Extrae los corazones y escala de latido al estado de renderizado del jugador. */
-	@Inject(method = "extractRenderState(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/client/renderer/entity/state/PlayerRenderState;F)V",
-			at = @At("TAIL"))
-	private void chaosheart$extractHearts(AbstractClientPlayer player, PlayerRenderState state, float partialTick, CallbackInfo ci) {
-		Scoreboard scoreboard = player.getScoreboard();
+	@Inject(method = "extractRenderState",
+			at = @At("TAIL"),
+			remap = false)
+	private void chaosheart$extractHearts(Avatar avatar, AvatarRenderState state, float partialTick, CallbackInfo ci) {
+		Scoreboard scoreboard = avatar.level().getScoreboard();
 		Objective objective = scoreboard.getObjective(ChaosHeart.OBJECTIVE);
 		if (objective != null && scoreboard.getDisplayObjective(DisplaySlot.BELOW_NAME) != objective) {
 			// Servidor con el mod pero con showAboveName desactivado.
 			return;
 		}
+
+		// Si el scoreText vanilla vino de nuestro objetivo de abajo del nombre, lo ocultamos de abajo.
+		if (objective != null && scoreboard.getDisplayObjective(DisplaySlot.BELOW_NAME) == objective) {
+			state.scoreText = null;
+		}
+
 		Component hearts;
 		int value;
-		ReadOnlyScoreInfo info = objective != null ? scoreboard.getPlayerScoreInfo(player, objective) : null;
+		ReadOnlyScoreInfo info = objective != null ? scoreboard.getPlayerScoreInfo(avatar, objective) : null;
 		if (info != null) {
-			hearts = ReadOnlyScoreInfo.safeFormatValue(info, objective.numberFormatOrDefault(StyledFormat.NO_STYLE));
+			hearts = info.formatValue(objective.numberFormatOrDefault(StyledFormat.NO_STYLE));
 			value = info.value();
-		} else {
+		} else if (avatar instanceof LivingEntity living) {
 			// Servidor sin el mod (o score aún no recibido): datos de entidad sincronizados.
-			value = HeartText.value(player);
+			value = HeartText.value(living);
 			hearts = HeartText.of(value);
+		} else {
+			return;
 		}
 
 		if (state instanceof ChaosHeartRenderState chState) {
 			chState.chaosheart$setHearts(hearts);
 			if (HeartText.isLow(value)) {
-				chState.chaosheart$setBeatScale(HeartText.beatScale(player.tickCount + partialTick));
+				chState.chaosheart$setBeatScale(HeartText.beatScale(avatar.tickCount + partialTick));
 			} else {
 				chState.chaosheart$setBeatScale(1.0F);
 			}
 		}
 	}
 
-	/** Tras dibujar el nombre, sube una línea y dibuja los corazones. */
-	@WrapOperation(method = "renderNameTag(Lnet/minecraft/client/renderer/entity/state/PlayerRenderState;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
-			at = @At(value = "INVOKE", ordinal = 1,
-					target = "Lnet/minecraft/client/renderer/entity/LivingEntityRenderer;renderNameTag(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V"))
-	private void chaosheart$renderHearts(PlayerRenderer renderer, EntityRenderState entityState, Component name, PoseStack poseStack,
-			MultiBufferSource buffer, int light, Operation<Void> original) {
-		original.call(renderer, entityState, name, poseStack, buffer, light);
-		if (!(entityState instanceof ChaosHeartRenderState chState)) {
+	/** Dibuja los corazones arriba del nametag tras el render del nombre. */
+	@Inject(method = "submitNameDisplay(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
+			at = @At("TAIL"),
+			remap = false)
+	private void chaosheart$renderHearts(AvatarRenderState state, PoseStack poseStack, SubmitNodeCollector collector,
+			CameraRenderState cameraRenderState, CallbackInfo ci) {
+		if (!(state instanceof ChaosHeartRenderState chState)) {
 			return;
 		}
 		Component hearts = chState.chaosheart$getHearts();
-		if (hearts == null) {
+		if (hearts == null || state.nameTagAttachment == null) {
 			return;
 		}
 
 		poseStack.pushPose();
+		int yOffset = state.showExtraEars ? -10 : 0;
+		// Si se dibujó el nametag, subimos una línea (9 * 1.15 * 0.025) por encima.
 		poseStack.translate(0.0F, 9.0F * 1.15F * 0.025F, 0.0F);
 		float scale = chState.chaosheart$getBeatScale();
 		if (scale != 1.0F) {
-			chaosheart$heartbeat(entityState, poseStack, scale);
+			chaosheart$heartbeat(state, poseStack, scale);
 		}
-		original.call(renderer, entityState, hearts, poseStack, buffer, light);
+		collector.submitNameTag(poseStack, state.nameTagAttachment, yOffset, hearts, !state.isDiscrete, state.lightCoords, cameraRenderState);
 		poseStack.popPose();
 	}
 
 	/** Escala la línea alrededor de su centro con un doble latido ("pum-pum") cada segundo. */
-	private static void chaosheart$heartbeat(EntityRenderState state, PoseStack poseStack, float scale) {
-		// Mismo anclaje que EntityRenderer.renderNameTag; el texto ocupa 9px hacia abajo desde ahí.
+	@Unique
+	private static void chaosheart$heartbeat(AvatarRenderState state, PoseStack poseStack, float scale) {
 		Vec3 anchor = state.nameTagAttachment;
 		if (anchor == null) {
 			return;

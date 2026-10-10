@@ -13,12 +13,13 @@ base {
 
 java {
     withSourcesJar()
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = 21
+    it.options.release = 25
     it.options.encoding = 'UTF-8'
 }
 
@@ -74,10 +75,10 @@ dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
 
-    compileOnly "io.github.llamalad7:mixinextras-common:0.4.1"
-    annotationProcessor "io.github.llamalad7:mixinextras-common:0.4.1"
-    implementation(jarJar("io.github.llamalad7:mixinextras-forge:0.4.1")) {
-        jarJar.ranged(it, "[0.4.1,)")
+    compileOnly "io.github.llamalad7:mixinextras-common:0.5.5"
+    annotationProcessor "io.github.llamalad7:mixinextras-common:0.5.5"
+    implementation(jarJar("io.github.llamalad7:mixinextras-forge:0.5.5")) {
+        jarJar.ranged(it, "[0.5.5,)")
     }
 }
 
@@ -98,3 +99,18 @@ processResources {
     }
     inputs.properties(expandProps)
 }
+
+tasks.named('downloadMcpConfig') {
+    doLast {
+        exec {
+            commandLine 'python', file('scripts/patch_mcp.py').absolutePath
+        }
+    }
+}
+
+
+
+
+
+
+
