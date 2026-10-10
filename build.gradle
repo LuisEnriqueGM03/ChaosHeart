@@ -24,10 +24,10 @@ tasks.withType(JavaCompile).configureEach {
 jar {
     manifest {
         attributes([
-            'Specification-Title': mod_name,
+            'Specification-Title': 'Chaos Heart (Forge)',
             'Specification-Vendor': mod_author,
             'Specification-Version': version,
-            'Implementation-Title': project.name,
+            'Implementation-Title': "${project.name}-Forge",
             'Implementation-Version': version,
             'Implementation-Vendor': mod_author,
             'MixinConfigs': "${mod_id}.mixins.json"

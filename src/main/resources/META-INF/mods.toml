@@ -1,6 +1,7 @@
 modLoader="javafml"
 loaderVersion="[47,)"
 license="MIT"
+issueTrackerURL="https://github.com/Goddark83/ChaosHeart/issues"
 
 [[mods]]
 modId="chaosheart"
@@ -8,7 +9,7 @@ version="1.0.0"
 displayName="Chaos Heart"
 logoFile="assets/chaosheart/icon.png"
 authors="Goddark83"
-description='''Muestra la vida de cada jugador en tiempo real encima del nombre y en el TAB. Incluye corazones de absorcion y corazones extra de otros mods.'''
+description='''Muestra la vida de cada jugador en tiempo real encima del nombre y en el TAB (Forge 1.20.1). Incluye corazones de absorcion y corazones extra de otros mods.'''
 
 [[dependencies.chaosheart]]
 modId="forge"
