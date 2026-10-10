@@ -14,17 +14,15 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.numbers.FixedFormat;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.scores.DisplaySlot;
 import net.minecraft.world.scores.Objective;
-import net.minecraft.world.scores.ScoreAccess;
+import net.minecraft.world.scores.Score;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.world.scores.criteria.ObjectiveCriteria;
 
 /**
- * Mantiene el objetivo de scoreboard "chaosheart" con la vida de cada jugador como texto fijo "22❤".
+ * Mantiene el objetivo de scoreboard "chaosheart" con la vida de cada jugador como valor numérico.
  * El scoreboard se sincroniza a todos los clientes, así el TAB funciona incluso en clientes vanilla.
  */
 public class ChaosHeart implements ModInitializer {
@@ -48,7 +46,7 @@ public class ChaosHeart implements ModInitializer {
 			LAST.remove(player.getUUID());
 			Objective objective = server.getScoreboard().getObjective(OBJECTIVE);
 			if (objective != null) {
-				server.getScoreboard().resetSinglePlayerScore(player, objective);
+				server.getScoreboard().resetPlayerScore(player.getScoreboardName(), objective);
 			}
 		});
 	}
@@ -58,18 +56,18 @@ public class ChaosHeart implements ModInitializer {
 		Objective objective = scoreboard.getObjective(OBJECTIVE);
 		if (objective == null) {
 			objective = scoreboard.addObjective(OBJECTIVE, ObjectiveCriteria.DUMMY, Component.empty(),
-					ObjectiveCriteria.RenderType.INTEGER, false, null);
+					ObjectiveCriteria.RenderType.INTEGER);
 		}
 		HeartConfig config = HeartConfig.get();
 		if (config.showAboveName) {
-			scoreboard.setDisplayObjective(DisplaySlot.BELOW_NAME, objective);
-		} else if (scoreboard.getDisplayObjective(DisplaySlot.BELOW_NAME) == objective) {
-			scoreboard.setDisplayObjective(DisplaySlot.BELOW_NAME, null);
+			scoreboard.setDisplayObjective(Scoreboard.DISPLAY_SLOT_BELOW_NAME, objective);
+		} else if (scoreboard.getDisplayObjective(Scoreboard.DISPLAY_SLOT_BELOW_NAME) == objective) {
+			scoreboard.setDisplayObjective(Scoreboard.DISPLAY_SLOT_BELOW_NAME, null);
 		}
 		if (config.showInTab) {
-			scoreboard.setDisplayObjective(DisplaySlot.LIST, objective);
-		} else if (scoreboard.getDisplayObjective(DisplaySlot.LIST) == objective) {
-			scoreboard.setDisplayObjective(DisplaySlot.LIST, null);
+			scoreboard.setDisplayObjective(Scoreboard.DISPLAY_SLOT_LIST, objective);
+		} else if (scoreboard.getDisplayObjective(Scoreboard.DISPLAY_SLOT_LIST) == objective) {
+			scoreboard.setDisplayObjective(Scoreboard.DISPLAY_SLOT_LIST, null);
 		}
 	}
 
@@ -85,9 +83,8 @@ public class ChaosHeart implements ModInitializer {
 			if (previous != null && previous == value) {
 				continue;
 			}
-			ScoreAccess score = scoreboard.getOrCreatePlayerScore(player, objective);
-			score.numberFormatOverride(new FixedFormat(HeartText.of(value)));
-			score.set(value);
+			Score score = scoreboard.getOrCreatePlayerScore(player.getScoreboardName(), objective);
+			score.setScore(value);
 		}
 	}
 }

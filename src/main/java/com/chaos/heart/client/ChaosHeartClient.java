@@ -10,8 +10,5 @@ public class ChaosHeartClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		HeartConfig.load();
-		if (SelfTest.enabled()) {
-			SelfTest.register();
-		}
 	}
 }

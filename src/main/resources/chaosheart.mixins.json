@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"package": "com.chaos.heart.mixin",
-	"compatibilityLevel": "JAVA_21",
+	"compatibilityLevel": "JAVA_17",
 	"client": [
 		"client.PlayerRendererMixin",
 		"client.PlayerTabOverlayMixin"
