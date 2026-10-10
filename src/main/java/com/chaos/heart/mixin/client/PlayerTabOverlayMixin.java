@@ -15,7 +15,7 @@ import com.llamalad7.mixinextras.sugar.Local;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
@@ -31,29 +31,32 @@ public abstract class PlayerTabOverlayMixin {
 	@Final
 	private Minecraft minecraft;
 
-	@WrapOperation(method = "renderTablistScore",
+	@WrapOperation(method = "extractTablistScore",
 			at = @At(value = "INVOKE",
-					target = "Lnet/minecraft/client/gui/GuiGraphics;drawString(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;III)I"))
-	private int chaosheart$beatingHeart(GuiGraphics graphics, Font font, Component text, int x, int y, int color,
-			Operation<Integer> original, @Local(argsOnly = true) Objective objective, @Local(argsOnly = true) UUID uuid) {
+					target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;text(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;III)V"))
+	private void chaosheart$beatingHeart(GuiGraphicsExtractor extractor, Font font, Component text, int x, int y, int color,
+			Operation<Void> original, @Local(argsOnly = true) Objective objective, @Local(argsOnly = true) UUID uuid) {
 		if (!ChaosHeart.OBJECTIVE.equals(objective.getName()) || text.getSiblings().isEmpty()
 				|| !HeartText.isLow(chaosheart$score(objective, uuid))) {
-			return original.call(graphics, font, text, x, y, color);
+			original.call(extractor, font, text, x, y, color);
+			return;
 		}
 		// "4❤" llega como literal "4" con el corazón de hermano: número fijo, corazón escalado sobre su centro.
 		Component number = text.plainCopy().setStyle(text.getStyle());
 		Component heart = text.getSiblings().get(0);
-		int heartX = original.call(graphics, font, number, x, y, color);
-		float scale = HeartText.beatScale(minecraft.gui.getGuiTicks() + minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false));
+		original.call(extractor, font, number, x, y, color);
+
+		int heartX = x + font.width(number);
+		float scale = HeartText.beatScale(minecraft.gui.hud.getGuiTicks() + minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false));
 		float cx = heartX + font.width(heart) / 2.0F;
 		float cy = y + 4.0F;
-		graphics.pose().pushPose();
-		graphics.pose().translate(cx, cy, 0.0F);
-		graphics.pose().scale(scale, scale, 1.0F);
-		graphics.pose().translate(-cx, -cy, 0.0F);
-		int end = original.call(graphics, font, heart, heartX, y, color);
-		graphics.pose().popPose();
-		return end;
+
+		extractor.pose().pushMatrix();
+		extractor.pose().translate(cx, cy);
+		extractor.pose().scale(scale, scale);
+		extractor.pose().translate(-cx, -cy);
+		original.call(extractor, font, heart, heartX, y, color);
+		extractor.pose().popMatrix();
 	}
 
 	private int chaosheart$score(Objective objective, UUID uuid) {
@@ -62,7 +65,7 @@ public abstract class PlayerTabOverlayMixin {
 			return 0;
 		}
 		ReadOnlyScoreInfo score = objective.getScoreboard()
-				.getPlayerScoreInfo(ScoreHolder.forNameOnly(info.getProfile().getName()), objective);
+				.getPlayerScoreInfo(ScoreHolder.forNameOnly(info.getProfile().name()), objective);
 		return score != null ? score.value() : 0;
 	}
 }

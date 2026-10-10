@@ -48,11 +48,11 @@ public class ChaosHeart {
 		forgeBus.addListener(ServerTickEvent.Post.class, event -> tick(event.getServer()));
 		forgeBus.addListener(PlayerEvent.PlayerLoggedOutEvent.class, event -> {
 			if (event.getEntity() instanceof ServerPlayer player) {
-				handleDisconnect(player, player.getServer());
+				handleDisconnect(player, player.level().getServer());
 			}
 		});
 
-		if (FMLEnvironment.dist == Dist.CLIENT && SelfTest.enabled()) {
+		if (FMLEnvironment.getDist() == Dist.CLIENT && SelfTest.enabled()) {
 			SelfTest.register();
 		}
 	}

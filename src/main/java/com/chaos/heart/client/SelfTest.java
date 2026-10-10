@@ -62,7 +62,7 @@ public final class SelfTest {
 			return;
 		}
 		mc.options.pauseOnLostFocus = false;
-		mc.getToastManager().clear();
+		mc.gui.toastManager().clear();
 		ticks++;
 		if (ticks == START) {
 			onServer(mc, SelfTest::setup);
@@ -132,10 +132,10 @@ public final class SelfTest {
 
 	private static void setup(MinecraftServer server) {
 		ServerLevel level = server.overworld();
-		level.setDayTime(6000);
-		level.setWeatherParameters(6000, 0, false, false);
+		server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), "time set day");
+		server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), "weather clear 6000");
 
-		BlockPos base = level.getSharedSpawnPos().offset(120, 0, 120);
+		BlockPos base = level.getRespawnData().pos().offset(120, 0, 120);
 		level.getChunk(base);
 		BlockPos ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, base);
 		clearScene(level, ground);
@@ -148,7 +148,7 @@ public final class SelfTest {
 		camera = me.position();
 
 		friend = FakePlayerFactory.get(level, FRIEND);
-		friend.moveTo(ground.getX() + 0.5, ground.getY(), ground.getZ() + 0.5, 0.0F, 0.0F);
+		friend.snapTo(ground.getX() + 0.5, ground.getY(), ground.getZ() + 0.5, 0.0F, 0.0F);
 		friend.setYHeadRot(0.0F);
 		friend.setHealth(20.0F);
 		server.getPlayerList().broadcastAll(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(friend)));
@@ -195,7 +195,7 @@ public final class SelfTest {
 	}
 
 	private static void shot(Minecraft mc, String name) {
-		Screenshot.grab(mc.gameDirectory, "selftest_" + name + ".png", mc.getMainRenderTarget(),
+		Screenshot.grab(mc.gameDirectory, "selftest_" + name + ".png", mc.gameRenderer.mainRenderTarget(), 1,
 				msg -> ChaosHeart.LOGGER.info("[selftest] {}", msg.getString()));
 	}
 }
