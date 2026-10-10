@@ -1,0 +1,25 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+
+[[mods]]
+modId="chaosheart"
+version="1.0.0"
+displayName="Chaos Heart"
+logoFile="assets/chaosheart/icon.png"
+authors="Goddark83"
+description='''Muestra la vida de cada jugador en tiempo real encima del nombre y en el TAB. Incluye corazones de absorcion y corazones extra de otros mods.'''
+
+[[dependencies.chaosheart]]
+modId="forge"
+mandatory=true
+versionRange="[47.1.0,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.chaosheart]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1, 1.21)"
+ordering="NONE"
+side="BOTH"

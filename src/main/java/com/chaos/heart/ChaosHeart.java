@@ -9,10 +9,6 @@ import org.slf4j.LoggerFactory;
 
 import com.chaos.heart.config.HeartConfig;
 
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -20,38 +16,54 @@ import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.Score;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.world.scores.criteria.ObjectiveCriteria;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.server.ServerStartedEvent;
+import net.minecraftforge.event.server.ServerStoppedEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.loading.FMLPaths;
 
-/**
- * Mantiene el objetivo de scoreboard "chaosheart" con la vida de cada jugador como valor numérico.
- * El scoreboard se sincroniza a todos los clientes, así el TAB funciona incluso en clientes vanilla.
- */
-public class ChaosHeart implements ModInitializer {
+@Mod(ChaosHeart.MOD_ID)
+public class ChaosHeart {
 
 	public static final String MOD_ID = "chaosheart";
 	public static final String OBJECTIVE = "chaosheart";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-	/** Último valor enviado por jugador. */
 	private static final Map<UUID, Integer> LAST = new HashMap<>();
 
-	@Override
-	public void onInitialize() {
-		HeartConfig.load();
-
-		ServerLifecycleEvents.SERVER_STARTED.register(ChaosHeart::setupObjective);
-		ServerLifecycleEvents.SERVER_STOPPED.register(server -> LAST.clear());
-		ServerTickEvents.END_SERVER_TICK.register(ChaosHeart::tick);
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-			ServerPlayer player = handler.getPlayer();
-			LAST.remove(player.getUUID());
-			Objective objective = server.getScoreboard().getObjective(OBJECTIVE);
-			if (objective != null) {
-				server.getScoreboard().resetPlayerScore(player.getScoreboardName(), objective);
-			}
-		});
+	public ChaosHeart() {
+		HeartConfig.load(FMLPaths.CONFIGDIR.get());
+		MinecraftForge.EVENT_BUS.register(this);
 	}
 
-	private static void setupObjective(MinecraftServer server) {
+	@SubscribeEvent
+	public void onServerStarted(ServerStartedEvent event) {
+		setupObjective(event.getServer());
+	}
+
+	@SubscribeEvent
+	public void onServerStopped(ServerStoppedEvent event) {
+		LAST.clear();
+	}
+
+	@SubscribeEvent
+	public void onServerTick(TickEvent.ServerTickEvent event) {
+		if (event.phase == TickEvent.Phase.END) {
+			tick(event.getServer());
+		}
+	}
+
+	@SubscribeEvent
+	public void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+		if (event.getEntity() instanceof ServerPlayer player) {
+			handleDisconnect(player, player.getServer());
+		}
+	}
+
+	public static void setupObjective(MinecraftServer server) {
 		Scoreboard scoreboard = server.getScoreboard();
 		Objective objective = scoreboard.getObjective(OBJECTIVE);
 		if (objective == null) {
@@ -71,7 +83,7 @@ public class ChaosHeart implements ModInitializer {
 		}
 	}
 
-	private static void tick(MinecraftServer server) {
+	public static void tick(MinecraftServer server) {
 		Scoreboard scoreboard = server.getScoreboard();
 		Objective objective = scoreboard.getObjective(OBJECTIVE);
 		if (objective == null) {
@@ -85,6 +97,16 @@ public class ChaosHeart implements ModInitializer {
 			}
 			Score score = scoreboard.getOrCreatePlayerScore(player.getScoreboardName(), objective);
 			score.setScore(value);
+		}
+	}
+
+	public static void handleDisconnect(ServerPlayer player, MinecraftServer server) {
+		LAST.remove(player.getUUID());
+		if (server != null) {
+			Objective objective = server.getScoreboard().getObjective(OBJECTIVE);
+			if (objective != null) {
+				server.getScoreboard().resetPlayerScore(player.getScoreboardName(), objective);
+			}
 		}
 	}
 }
